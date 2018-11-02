@@ -1,0 +1,8 @@
+import pandas as pd
+
+df = pd.read_csv('/home/halk/hawkAI_prject/project/all/analysistool/analysistool/spiders/magic1234.csv')
+
+df_reorder = df[["Project_name","project_by","location","Super Built Area","Price Range","Price Per Sq Ft","Description","Project Status","possession_date","Bedrooms","units","towers","unit_price","rera_no"]]
+
+df_reorder.to_csv('/home/halk/hawkAI_prject/project/all/analysistool/analysistool/spiders/reorderdata.csv', index=False)
+

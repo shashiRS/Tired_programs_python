@@ -1,0 +1,18 @@
+=IF(ISBLANK(T2), "", "1")& "," & 
+ IF(ISBLANK(U2), "", "2")& "," &
+ IF(ISBLANK(V2), "", "3")& "," & 
+ IF(ISBLANK(W2), "", "4")& "," & 
+ IF(ISBLANK(X2), "", "5")
+
+=IF(ISNUMBER(U2), "", "2")
+& "," & IF(ISNUMBER(T2), "", "3")
+
+=IF(ISBLANK(T2), "1", "")&
+ IF(ISNUMBER(U2), "2", "")&
+ IF(ISNUMBER(V2), "3", "")&
+ IF(ISNUMBER(W2), "4", "")&
+ IF(ISNUMBER(X2), "5", "")
+
+
+=REGEXREPLACE(A2,"(@*\.*),","$1")
+

@@ -1,0 +1,94 @@
+import mechanize
+import cookielib
+from bs4 import BeautifulSoup
+
+# Browser
+br = mechanize.Browser()
+print br
+br.set_handle_robots(False)   # ignore robots
+
+data=br.open('http://www.proprepublic.com/contact-us/')
+print data
+# print data.read()      # the text of the page
+for form in br.forms():
+    print "Form name:", form.name
+    print form
+
+# br.select_form("contact_us")         # works when form has a name
+br.form = list(br.forms())[0]  # use when form is unnamed
+print(br.form)
+# name=
+# for control in br.form.controls:
+#     print control
+#     print "type=%s, name=%s value=%s" % (control.type, control.name, br[control.name])
+
+controlname = br.form.find_control("your-name")
+if controlname:
+    print("true")
+    if controlname.type == "select":  # means it's class ClientForm.SelectControl
+        for item in controlname.items:
+        	print " name=%s values=%s" % (item.name, str([label.text  for label in item.get_labels()]))
+    print('***********************************************************')
+    print controlname  # selected value is starred
+    controlname.value = "Vinodh"
+    print controlname
+# br[control.name] = "Shashikala"  # equivalent and more norma
+
+
+controlcontact = br.form.find_control("tel-706")
+if controlcontact:
+    if controlcontact.type == "select":  # means it's class ClientForm.SelectControl
+        for item in controlcontact.items:
+        	print " name=%s values=%s" % (item.name, str([label.text  for label in item.get_labels()]))
+    print('***********************************************************')
+    print controlcontact  # selected value is starred
+    controlcontact.value = "9738125330"
+    print controlcontact
+    # br[control.contact] = "9449997759"  # equivalent
+
+
+controlemail = br.form.find_control("your-email")
+if controlemail:
+    if controlemail.type == "select":  # means it's class ClientForm.SelectControl
+        for item in controlemail.items:
+        	print " name=%s values=%s" % (item.name, str([label.text  for label in item.get_labels()]))
+    print('***********************************************************')
+    print controlemail  # selected value is starred
+    controlemail.value = "vinodhbmsce@gmail.com"
+    print controlemail
+    # br[control.email] = "xyz@gmail.com" # equivalent
+
+controlsub = br.form.find_control("your-subject")
+if controlsub:
+    if controlsub.type == "select":  # means it's class ClientForm.SelectControl
+        for item in controlsub.items:
+            print " name=%s values=%s" % (item.name, str([label.text  for label in item.get_labels()]))
+    print('***********************************************************')
+    print controlsub  # selected value is starred
+    controlsub.value = "Hiiiii"
+    print controlsub
+
+controlmsg = br.form.find_control("your-message")
+if controlmsg:
+    if controlmsg.type == "select":  # means it's class ClientForm.SelectControl
+        for item in controlmsg.items:
+            print " name=%s values=%s" % (item.name, str([label.text  for label in item.get_labels()]))
+    print('***********************************************************')
+    print controlmsg  # selected value is starred
+    controlmsg.value = "Wedding okay"
+    print controlmsg
+
+for control in br.form.controls:
+   if control.type == "submit":
+       control.disabled = True
+response = br.submit()
+print response
+# br.back()   # go back
+
+# br.form['name']="priya"
+# br.form['contact_number']="9449997759"
+# br.form['email_id']="xyz@gmail.com"
+# br.form['captcha']='3948'
+# br.form['comment']='Awesome'
+# response = br.submit()
+# print response

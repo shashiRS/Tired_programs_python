@@ -1,0 +1,23 @@
+WordList=['www.makaan.com',             
+'www.hindustanproperty.com',     
+'www.proptiger.com',    
+'99acres.com',
+'magicbricks.com',
+'Indiaproperty.com',
+'commonfloor.com',
+'propertywala.com',
+'www.realestateexpress.com',
+'www.brokers-settlement.com']
+
+word='99acres.com'
+b = word in (w for i, w in enumerate(WordList) if i != 1)
+print(b)
+if b=='True':
+    print("Present")
+else:
+    print("Not Present")
+    
+  
+
+      
+

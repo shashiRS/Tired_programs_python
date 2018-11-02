@@ -1,0 +1,568 @@
+import requests
+from bs4 import BeautifulSoup
+from flask import Flask,render_template,request
+import webbrowser
+import re
+import schedule
+import logging
+import conf
+from conf import db,app
+import webbrowser
+import time
+from threading import Thread
+import threading
+import imgkit
+import os
+from PIL import Image
+import urllib 
+from urllib import urlopen 
+from re import findall
+import pdb
+import whois
+import re
+import json
+import smtplib
+import sys
+# import socket
+# socket.setdefaulttimeout(30)
+
+logging.basicConfig(level=logging.DEBUG,format='%(asctime)s:%(levelname)s:%(message)s')
+APP_ROOT=os.path.dirname(os.path.abspath(__file__))
+target=os.path.join(APP_ROOT,'static/')
+count=0
+class Orgn(db.Model):
+    __tablename__ = 'org'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name=db.Column(db.String(500))
+    link=db.Column(db.String(500))
+    orname_desc=db.Column(db.String(500))
+    project_id=db.Column(db.String(100))
+
+class Contact(db.Model):
+    __tablename__ = 'contactdetail'
+
+    id = db.Column(db.Integer, primary_key=True)
+    contaclink=db.Column(db.String(500))
+    Phone_no=db.Column(db.String(100),nullable=True)
+    email_id=db.Column(db.String(100),nullable=True)
+
+    
+db.create_all()
+@app.route('/')
+def index():
+    t = Thread(name="OrgThread")
+    # print threading.current_thread() 
+    print threading.currentThread()
+    t.start()
+    return render_template('googleindex.html')
+
+@app.route('/search',methods=['GET','POST'])
+def search():
+    title=[]
+    link=[]
+    path=[]
+    orname_des=[]
+    social_link=['facebook','youtube','twitter','instagram','linkedin','pinterest','Google+']    
+    term=request.form['projectFilepath']
+    print(term)
+    for j in range(0,5):
+        r=requests.get("https://www.google.co.in/search?q="+urllib.quote(term)+"&newwindow=1&ei=Sv-HWY36KoX-vgT60YWABA&start="+str(j)+"0&sa=N&biw=1484&bih=792")
+        # print r
+      
+        # imgkit.from_url("https://www.google.co.in/search?q="+term+"&newwindow=1&ei=Sv-HWY36KoX-vgT60YWABA&start="+str(j)+"0&sa=N&biw=1484&bih=792","Organic_page"+str(j)+".png")
+        # time.sleep(5)
+        # filename="http://localhost:5000/static/Organic_page"+str(j)+".png"
+        # path.append(filename)
+        # image = Image.open("Organic_page"+str(j)+".png")
+        # dest="/".join([target,"Organic_page"+str(j)+".png"])
+        # image.save(dest)
+        soup=BeautifulSoup(r.content,'lxml')
+        # print soup
+        # print soup
+        # print item.contents[1].text
+        # print soup('cite', {'class' : '_WGk'})
+        
+        links=soup.find_all("h3",{'class':'r'})
+        # print links
+         
+        for l in links:
+            for link_s in l.find_all('a'):
+                # logging.debug(link_s.text)
+                title.append(link_s.text)
+                url=link_s.get('href')
+                url1=url.split('=',1)
+                url2=url1[1].split('&',1)
+                link.append(url2[0])
+                
+                # print link.contents[0],link.contents[1]
+
+        # f = urllib.urlopen(row['link'])
+        # s = f.read()
+        # r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+        # logging.debug(re.findall(r'\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4}',s))
+        # logging.debug(re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}",s))
+        # name_adword=soup('cite', {'class' : '_Rm'})
+        # print name_adword
+        # for n in name_adword:
+        #     adname_name.append(n.text)
+        #     filename=n.text
+        #     res=filename.split('/',1)[0]
+        #     res1=res.split(".", 1)[1]
+        #     adlink.append(res1)
+        #     # print res1
+
+
+       
+        descript=soup.find_all('span', {'class' : 'st'})
+        # print descript
+        for des in descript:
+            orname_des.append(des.text)
+  
+            # print (des.text)
+    print(len(link))
+    for i in range(1,len(link)):
+       
+        fetch_data = db.session.query(Orgn).all()
+            # ALTER TABLE channelwala.org MODIFY COLUMN orname_desc VARCHAR(555)     CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;
+        print("____________________________________________________:::"+str(i))
+        if fetch_data==[]:
+            flag1=False
+            flag2=False
+            print(link[i])
+            new=Orgn(name=title[i],link=link[i],orname_desc=orname_des[i],project_id=term+'_'+str(i))
+            db.session.add(new)
+            db.session.commit()
+            time.sleep(45)
+            f = urllib.urlopen(link[i])
+            s = f.read()
+            print(re.findall(r"\+?\d{1,3}?[- .]?\(?(?:\d{2,3})\)?[- .]?\d\d\d[- .]?\d\d\d\d",s))   
+            my_listp=findall(r"\+91[\s-]?\d*[-\s]?\d*[\s-]?\d{3}",s)
+            # logging.debug(re.findall(r"(?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9])\s*\)|([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9]))\s*(?:[.-]\s*)?)?([2-9]1[02-9]|[2-9][02-9]1|[2-9][02-9]{2})\s*(?:[.-]\s*)?([0-9]{4})(?:\s*(?:#|x\.?|ext\.?|extension)\s*(\d+))?",s))
+            my_liste=re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(?:com|in|co.in|org|edu|gov|uk|net|ca|mil)",s)
+
+            my_set2 = set(my_liste)
+            email=list(my_set2)
+            my_set1 = set(my_listp)
+            phone_number=list(my_set1)
+
+            lennumber=len(phone_number)
+            lenemail=len(email)
+            print(email,lenemail)
+            print(phone_number,lennumber)
+            if lenemail==0:
+                flag1=True
+            if lennumber==0:
+                flag2=True
+            if flag1 and flag2==True:
+                logging.debug(link[i])
+                if 'facebook' in link[i]:
+                    print("Social media")
+                else:
+                    f = requests.get(link[i])
+                    s = BeautifulSoup(f.content,'lxml')
+                        
+                    logging.debug(link[i])
+                    url2=link[i].split('/')[2]
+                    # print(s.find_all('a', href=True, text=re.compile(r'(\w*)contact(\w*)', flags=re.IGNORECASE)))
+                    for lll in s.find_all('a', href=True, text=re.compile(r'(\w*)contact(\w*)', flags=re.IGNORECASE)):
+                        print lll['href']
+                        time.sleep(45)
+                        urll="http://"+url2+lll['href']
+                        f = urllib.urlopen(urll)
+                        s = f.read()
+                            
+                        print("Both are empty fetching contact-Us page")
+                        print(re.findall(r"\+?\d{1,3}?[- .]?\(?(?:\d{2,3})\)?[- .]?\d\d\d[- .]?\d\d\d\d",s))   
+  
+                        my_listp=findall(r"\+91[\s-]?\d*[-\s]?\d*[\s-]?\d{3}",s)
+                        my_liste=re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(?:com|in|co.in|org|edu|gov|uk|net|ca|mil)",s)
+
+                        my_set2 = set(my_liste)
+                        email=list(my_set2)
+                        my_set1 = set(my_listp)
+                        phone_number=list(my_set1)
+                        lennumber=len(phone_number)
+                        lenemail=len(email)
+                        print(email,lenemail)
+                        print(phone_number,lennumber)
+                        strnumber=''
+                        stremail=''
+                        for items in phone_number:
+                            strnumber+=items+','
+                            print strnumber
+                        for items in email:
+                            stremail+=items+',' 
+                            print stremail
+                        print(strnumber,stremail)
+                        new=Contact(contaclink=urll,Phone_no=strnumber,email_id=stremail)
+                        db.session.add(new)
+                        db.session.commit() 
+                            
+                            # if lennumber>lenemail:
+                            #     for j in range(lennumber):
+                            #         email.append('NULL')
+                            #     for j in range(lennumber):  
+                            #         new=Contact(contaclink=urll,Phone_no=phone_number[j],email_id=email[j])
+                            #         db.session.add(new)
+                            #         db.session.commit()
+                                            
+                            # elif lenemail>lennumber:
+                            #     for j in range(lenemail):
+                            #         phone_number.append('NULL')
+
+                            #     for j in range(lenemail):
+                            #         new=Contact(contaclink=urll,Phone_no=phone_number[j],email_id=email[j])
+                            #         db.session.add(new)
+                            #         db.session.commit()
+                            # elif lenemail ==lennumber:
+
+                            #     for j in range(lennumber):  
+                            #         new=Contact(contaclink=urll,Phone_no=phone_number[j],email_id=email[j])
+                            #         db.session.add(new)
+                            #         db.session.commit()
+
+                        print("DOMAIN:")
+                        domains=[]
+                        domm=link[i].split('/')[2]
+                                            
+                        if 'www' in domm:
+                            print("yes")
+                            domains.append(domm.split('www.',1)[1])
+                        else:
+                            print domm
+                            domains.append(domm)
+                        print domains 
+                        for dom in domains:
+                            domain = whois.whois(dom)
+                            # print domain
+                            print domain.emails
+                            print domain.registrar
+                            print domain.name
+                            print len(domain.emails)
+                        if len(domain.emails)>5:
+                            for j in range(1):
+                                new=Contact(contaclink=domain.name,Phone_no=domain.phone,email_id=domain.emails)
+                                db.session.add(new)
+                                db.session.commit()
+
+                        else:
+                            for j in domain.emails:
+                                new=Contact(contaclink=domain.name,Phone_no=domain.phone,email_id=j)
+                                db.session.add(new)
+                                db.session.commit()
+                
+            else:
+                strnumber=''
+                stremail=''
+                for items in phone_number:
+                    strnumber+=items+','
+                    print strnumber
+                for items in email:
+                    stremail+=items+',' 
+                    print stremail
+                print(strnumber,stremail)
+                new=Contact(contaclink=link[i],Phone_no=strnumber,email_id=stremail)
+                db.session.add(new)
+                db.session.commit() 
+                    # if lennumber>lenemail:
+                                         
+                    #     for j in range(lennumber):
+                    #         email.append('NULL')
+                    #     for j in range(lennumber):  
+                    #         new=Contact(contaclink=link[i],Phone_no=phone_number[j],email_id=email[j])
+                    #         db.session.add(new)
+                    #         db.session.commit()
+                            
+                   
+                    # else:
+                    #     for j in range(lenemail):
+                    #         phone_number.append('NULL')
+                    #     for j in range(lenemail):
+                    #         new=Contact(contaclink=link[i],Phone_no=phone_number[j],email_id=email[j])
+                    #         db.session.add(new)
+                    #         db.session.commit()
+                    # elif lenemail ==lennumber:
+                    #     for j in range(lennumber):  
+                    #     new=Contact(contaclink=urll,Phone_no=phone_number[j],email_id=email[j])
+                    #     db.session.add(new)
+                    #     db.session.commit()
+
+                print("DOMAIN:")
+                domains=[]
+                domm=link[i].split('/')[2]
+                                            
+                if 'www' in domm:
+                    print("yes")
+                    domains.append(domm.split('www.',1)[1])
+                else:
+                    print domm
+                    domains.append(domm)
+                print domains 
+                for dom in domains:
+                    domain = whois.whois(dom)
+                    # print domain
+                    print domain.emails
+                    print domain.registrar
+                    print domain.name
+                    print len(domain.emails)
+                if len(domain.emails)>5:
+                    for j in range(1):
+                        stremail+=domain.emails
+
+                else:
+                    
+                    for j in domain.emails:
+                        stremail+=items+','
+                    if domain.phone: 
+                        for j in domain.phone:
+                            strnumber+=items+','
+                    new=Contact(contaclink=domain.name,Phone_no=strnumber,email_id=stremail)
+                    db.session.add(new)
+                    db.session.commit()
+        elif Orgn.query.filter(Orgn.link == link[i]).count()>=1:
+            pass
+            
+        else:
+            flag1=False
+            flag2=False
+            new=Orgn(name=title[i],link=link[i],orname_desc=orname_des[i],project_id=term+'_'+str(i))   
+            db.session.add(new)
+            db.session.commit()
+            try:
+                time.sleep(45)
+                f = urllib.urlopen(link[i])
+                s = f.read()
+                print(re.findall(r"\+?\d{1,3}?[- .]?\(?(?:\d{2,3})\)?[- .]?\d\d\d[- .]?\d\d\d\d",s))   
+                my_listp=findall(r"\+91[\s-]?\d*[-\s]?\d*[\s-]?\d{3}",s)
+                # logging.debug(re.findall(r"(?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9])\s*\)|([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9]))\s*(?:[.-]\s*)?)?([2-9]1[02-9]|[2-9][02-9]1|[2-9][02-9]{2})\s*(?:[.-]\s*)?([0-9]{4})(?:\s*(?:#|x\.?|ext\.?|extension)\s*(\d+))?",s))
+                my_liste=re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(?:com|in|co.in|org|edu|gov|uk|net|ca|mil)",s)
+
+                my_set2 = set(my_liste)
+                email=list(my_set2)
+                my_set1 = set(my_listp)
+                phone_number=list(my_set1)
+
+                lennumber=len(phone_number)
+                lenemail=len(email)
+                print(email,lenemail)
+                print(phone_number,lennumber)
+                if lenemail==0:
+                    flag1=True
+                if lennumber==0:
+                    flag2=True
+                if flag1 and flag2==True:
+                    logging.debug(link[i])
+                    if 'facebook' in link[i]:
+                        print("Social media")
+                    else:
+                        f = requests.get(link[i])
+                        s = BeautifulSoup(f.content,'lxml')
+                            
+                        logging.debug(link[i])
+                        url2=link[i].split('/')[2]
+                        # print(s.find_all('a', href=True, text=re.compile(r'(\w*)contact(\w*)', flags=re.IGNORECASE)))
+                        for lll in s.find_all('a', href=True, text=re.compile(r'(\w*)contact(\w*)', flags=re.IGNORECASE)):
+                            print lll['href']
+                            time.sleep(45)
+                            urll="http://"+url2+lll['href']
+                            f = urllib.urlopen(urll)
+                            s = f.read()
+                                
+                            print("Both are empty fetching contact-Us page")
+                            print(re.findall(r"\+?\d{1,3}?[- .]?\(?(?:\d{2,3})\)?[- .]?\d\d\d[- .]?\d\d\d\d",s))   
+      
+                            my_listp=findall(r"\+91[\s-]?\d*[-\s]?\d*[\s-]?\d{3}",s)
+                            my_liste=re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(?:com|in|co.in|org|edu|gov|uk|net|ca|mil)",s)
+
+                            my_set2 = set(my_liste)
+                            email=list(my_set2)
+                            my_set1 = set(my_listp)
+                            phone_number=list(my_set1)
+                            lennumber=len(phone_number)
+                            lenemail=len(email)
+                            print(email,lenemail)
+                            print(phone_number,lennumber)
+                            strnumber=''
+                            stremail=''
+                            for items in phone_number:
+                                strnumber+=items+','
+                                print strnumber
+                            for items in email:
+                                stremail+=items+',' 
+                                print stremail
+                            print(strnumber,stremail)
+                            new=Contact(contaclink=urll,Phone_no=strnumber,email_id=stremail)
+                            db.session.add(new)
+                            db.session.commit() 
+                                
+                                # if lennumber>lenemail:
+                                #     for j in range(lennumber):
+                                #         email.append('NULL')
+                                #     for j in range(lennumber):  
+                                #         new=Contact(contaclink=urll,Phone_no=phone_number[j],email_id=email[j])
+                                #         db.session.add(new)
+                                #         db.session.commit()
+                                                
+                                # elif lenemail>lennumber:
+                                #     for j in range(lenemail):
+                                #         phone_number.append('NULL')
+
+                                #     for j in range(lenemail):
+                                #         new=Contact(contaclink=urll,Phone_no=phone_number[j],email_id=email[j])
+                                #         db.session.add(new)
+                                #         db.session.commit()
+                                # elif lenemail ==lennumber:
+
+                                #     for j in range(lennumber):  
+                                #         new=Contact(contaclink=urll,Phone_no=phone_number[j],email_id=email[j])
+                                #         db.session.add(new)
+                                #         db.session.commit()
+
+                            print("DOMAIN:")
+                            domains=[]
+                            domm=link[i].split('/')[2]
+                                                
+                            if 'www' in domm:
+                                print("yes")
+                                domains.append(domm.split('www.',1)[1])
+                            else:
+                                print domm
+                                domains.append(domm)
+                            print domains 
+                            for dom in domains:
+                                domain = whois.whois(dom)
+                                # print domain
+                                print domain.emails
+                                print domain.registrar
+                                print domain.name
+                                print len(domain.emails)
+                            if len(domain.emails)>5:
+                                for j in range(1):
+                                    new=Contact(contaclink=domain.name,Phone_no=domain.phone,email_id=domain.emails)
+                                    db.session.add(new)
+                                    db.session.commit()
+
+                            else:
+                                for j in domain.emails:
+                                    new=Contact(contaclink=domain.name,Phone_no=domain.phone,email_id=j)
+                                    db.session.add(new)
+                                    db.session.commit()
+                    
+                else:
+                    strnumber=''
+                    stremail=''
+                    for items in phone_number:
+                        strnumber+=items+','
+                        print strnumber
+                    for items in email:
+                        stremail+=items+',' 
+                        print stremail
+                    print(strnumber,stremail)
+                    new=Contact(contaclink=link[i],Phone_no=strnumber,email_id=stremail)
+                    db.session.add(new)
+                    db.session.commit() 
+                        # if lennumber>lenemail:
+                                             
+                        #     for j in range(lennumber):
+                        #         email.append('NULL')
+                        #     for j in range(lennumber):  
+                        #         new=Contact(contaclink=link[i],Phone_no=phone_number[j],email_id=email[j])
+                        #         db.session.add(new)
+                        #         db.session.commit()
+                                
+                       
+                        # else:
+                        #     for j in range(lenemail):
+                        #         phone_number.append('NULL')
+                        #     for j in range(lenemail):
+                        #         new=Contact(contaclink=link[i],Phone_no=phone_number[j],email_id=email[j])
+                        #         db.session.add(new)
+                        #         db.session.commit()
+                        # elif lenemail ==lennumber:
+                        #     for j in range(lennumber):  
+                        #     new=Contact(contaclink=urll,Phone_no=phone_number[j],email_id=email[j])
+                        #     db.session.add(new)
+                        #     db.session.commit()
+
+                    print("DOMAIN:")
+                    domains=[]
+                    domm=link[i].split('/')[2]
+                                                
+                    if 'www' in domm:
+                        print("yes")
+                        domains.append(domm.split('www.',1)[1])
+                    else:
+                        print domm
+                        domains.append(domm)
+                    print domains 
+                    for dom in domains:
+                        domain = whois.whois(dom)
+                        # print domain
+                        print domain.emails
+                        print domain.registrar
+                        print domain.name
+                        print len(domain.emails)
+                    if len(domain.emails)>5:
+                        for j in range(1):
+                            stremail+=domain.emails
+
+                    else:
+                        for j in domain.emails:
+                            stremail+=items+','
+                        for j in domain.phone:
+                            strnumber+=items+','
+                        new=Contact(contaclink=domain.name,Phone_no=strnumber,email_id=stremail)
+                        db.session.add(new)
+                        db.session.commit()
+            except :
+                print("-------------------failed --------")
+                print "Unexpected error:", sys.exc_info()[0]
+                print(link[i])
+        
+      
+    # fetch = db.session.query(Contact).all()
+    # for ke in fetch:
+    #     print(ke.email_id)
+    #     if ke.email_id=='NULL':
+    #         pass
+    #     else:
+
+    #         s = smtplib.SMTP('smtp.gmail.com', 587)
+    #         s.starttls()
+    #         s.login("hawkai95@gmail.com", "Hawkai@123")
+    #         message = "Python simple test"
+    #         s.sendmail("hawkai95@gmail.com",ke.email_id, message)
+    #         s.quit()
+    #         print("Success")
+    # for kp in fetch:
+    #     print(kp.Phone_no)
+    #     if kp.Phone_no=='NULL':
+    #         pass
+    #     else:
+
+    #         print(requests.get('http://msg.msgclub.net/rest/services/sendSMS/sendGroupSms?AUTH_KEY=83c355d838b5c8af557682dfbe8c3f9&message=http://www.pythonforbeginners.com/google/sending-emails-using-google&senderId=VERIFY&routeId=1&mobileNos=918123534864,919342107710&smsContentType=english'))
+    #         print("Success")
+    fetch_data = db.session.query(Orgn).all()
+
+    data_list=[{'id':row.id,'title':row.name,'link':row.link,'addesc':row.orname_desc} for row in fetch_data]
+    # path=['http://localhost:5000/static/Organic_page1.png','http://localhost:5000/static/Organic_page2.png','http://localhost:5000/static/Organic_page3.png','http://localhost:5000/static/Organic_page4.png','http://localhost:5000/static/Organic_page5.png']
+    return render_template('org.html',data=data_list,path_s=path)
+
+
+if __name__=='__main__':
+    
+    app.run(host='localhost')
+    
+
+    # webbrowser.open_new_tab('http://127.0.0.1:5000/')
+    
+# schedule.every(2).minutes.do(job)
+# schedule.every().hour.do(job)
+# schedule.every().day.at("10:30").do(job)
+# schedule.every().monday.do(job)
+# schedule.every().wednesday.at("13:15").do(job)
+# while True:
+#     schedule.run_pending()
+#     time.sleep(1)
+

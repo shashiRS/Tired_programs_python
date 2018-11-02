@@ -1,0 +1,11 @@
+import pandas as pd
+import numpy as np
+	
+
+
+data = pd.read_csv("/home/halk/hawkAI_prject/project/all/analysistool/analysistool/spiders/rco.csv", index_col="status")
+
+>>> dd=data.loc[data["Project status"]=="Ongoing"]
+
+>>> dd.to_csv('/home/halk/hawkAI_prject/project/all/analysistool/analysistool/spiders/Ready-to-move.csv')
+

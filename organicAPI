@@ -1,0 +1,335 @@
+# coding: utf8
+import json 
+from json import loads
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import schedule
+import time
+import conf
+import webbrowser
+from conf import db,app
+import logging
+import time
+from threading import Thread
+import threading
+from flask import Flask,render_template,request
+import urllib,re
+import subprocess
+import base64
+from PIL import Image
+from io import BytesIO
+import cStringIO
+import os 
+import imgkit  
+import sys
+from re import findall
+import whois
+import re
+
+APP_ROOT=os.path.dirname(os.path.abspath(__file__))
+
+pd.set_option('display.max_colwidth', -1)
+logging.basicConfig(level=logging.DEBUG,format='%(asctime)s:%(levelname)s:%(message)s')
+class Organic(db.Model):
+    __tablename__ = 'organic'
+
+    id = db.Column(db.Integer, primary_key=True)
+    link=db.Column(db.String(500))
+    title=db.Column(db.String(500))
+    snippet=db.Column(db.String(500))
+    domain=db.Column(db.String(100))
+    Phone_no=db.Column(db.String(500),nullable=True)
+    email_id=db.Column(db.String(500),nullable=True)
+class Screen(db.Model):
+    __tablename__ = 'screenshot'
+    id = db.Column(db.Integer, primary_key=True)
+    screenshot=db.Column(db.String(500))
+db.create_all()
+@app.route('/')
+def index():
+    t = Thread(name="OrganicThread")
+    # print threading.current_thread() 
+    print threading.currentThread()
+    t.start()
+    print threading.active_count()
+    
+
+    return render_template('googleindex.html')
+
+@app.route('/search',methods=['GET','POST'])    
+def search():
+    path=[]
+    domains=[]
+
+    target=os.path.join(APP_ROOT,'static/')
+    # term=raw_input("Enter string to search result for organic: ")
+    url="https://www.googleapis.com/customsearch/v1"
+    parameters={"q":request.form['projectFilepath'],
+                "cx":"018298358650870210662:ljvphoawsii",
+              "key":"AIzaSyBC78xFYfL0E62DRo8ugEwMM-OF6H18lcs",
+              "cr":"countryIN",
+              "client":"google-csbe",
+              "googlehost":"google.co.in"}
+
+        
+    page=requests.request("GET",url,params=parameters)
+
+
+    print page.url
+    print page
+    results=json.loads(page.text)
+    logging.debug(results.keys())
+    
+    # logging.debug(results)
+    def process_search(results):
+        link_list=[item["link"] for item in results["items"]]
+        df=pd.DataFrame(link_list,columns=["link"])
+        df["title"]=[item["title"] for item in results["items"]]
+        df["snippet"]=[item["snippet"] for item in results["items"]]
+        df['displayLink']=[item["displayLink"] for  item in results["items"]]
+        return df
+
+    df=process_search(results)
+    # logging.debug(df)
+            
+    for i in range(5):
+        next_index=results['queries']['nextPage'][0]['startIndex']
+        search_terms=results['queries']['nextPage'][0]['searchTerms']
+        url="https://www.googleapis.com/customsearch/v1"
+        parameters={"q":search_terms,
+                    "cx":"018298358650870210662:ljvphoawsii",
+                    "key":"AIzaSyDa2kZq173eE3TS5zin4y1NRM9z63e2EX0",
+                    "start":next_index,
+                    "as_lq":"google.co.in",
+                    "cr":"countryIN",
+                    "client":"google-csbe",}
+        page=requests.request("GET",url,params=parameters)
+        imgkit.from_url(page.url,'page'+str(i)+'.png')
+        results=json.loads(page.text)
+        logging.debug(results.keys())
+        imgkit.from_url("https://www.google.co.in/search?q="+request.form['projectFilepath']+"&newwindow=1&ei=25jEWcaJHqaQvQSd0IHwCw&start="+str(i)+"0&sa=N&biw=1215&bih=710",str(i)+".png")
+        filename="http://localhost:5000/static/"+str(i)+".png"
+        fetch_data = db.session.query(Screen).all()
+        if fetch_data==[]:
+            new=Screen(screenshot=filename)
+            db.session.add(new)
+            db.session.commit()
+        elif Screen.query.filter(Screen.screenshot == filename).count()>=1:
+            pass
+
+        else:
+            # imgkit.from_url(row['link'], row['title']+'.png')
+            new=Screen(screenshot=filename)
+            db.session.add(new)
+            db.session.commit()
+        image = Image.open(str(i)+".png")
+        dest="/".join([target,str(i)+".png"])
+        image.save(dest)
+        
+        
+
+        # logging.debug(len(results["items"]))
+    
+        def process_search(results):
+            link_list=[item["link"] for item in results["items"]]
+            df=pd.DataFrame(link_list,columns=["link"])
+            df["title"]=[item["title"] for item in results["items"]]
+            df["snippet"]=[item["snippet"] for item in results["items"]]
+            df['displayLink']=[item["displayLink"] for item in results["items"]]
+
+            # logging.debug(df['displayLink'])
+            return df
+
+        temp_df=process_search(results)
+        df=pd.concat([df,temp_df],ignore_index=True)
+        logging.debug(df)
+    for index, row in df.iterrows():
+        flag1=False
+        flag2=False
+        strnumber=''
+        stremail=''
+        try:
+            f = requests.get(row['link'])
+            s=f.content
+            
+            print(re.findall(r"\+?\d{1,3}?[- .]?\(?(?:\d{2,3})\)?[- .]?\d\d\d[- .]?\d\d\d\d",s))   
+            my_listp=findall(r"\+91[\s-]?\d*[-\s]?\d*[\s-]?\d{3}",s)
+            # logging.debug(re.findall(r"(?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9])\s*\)|([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9]))\s*(?:[.-]\s*)?)?([2-9]1[02-9]|[2-9][02-9]1|[2-9][02-9]{2})\s*(?:[.-]\s*)?([0-9]{4})(?:\s*(?:#|x\.?|ext\.?|extension)\s*(\d+))?",s))
+            my_liste=re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(?:com|in|co.in|org|edu|gov|uk|net|ca|mil)",s)
+
+            kk=re.findall(r"\+?\d{1,3}?[- .]?\(?(?:\d{2,3})\)?[- .]?\d\d\d[- .]?\d\d\d\d",s)
+            kk1 = set(kk)
+            content=list(kk1)
+            for k in range(1,8):
+                content = [x for x in content if not x.startswith(str(k))]
+            my_listp.extend(content)
+                           
+                            
+            domm=row['link'].split('/')[2]
+                                                            
+            if 'www' in domm:
+                domains.append(domm.split('www.',1)[1])
+                domn=domm.split('www.',1)[1]
+
+            else:
+                domains.append(domm)
+                domn=domm
+            for dom in domains:
+                domain = whois.whois(dom)
+                print domain.emails
+                print domain.registrar
+                print domain.name
+            if len(domain.emails)>5:
+                for j in range(1):
+                    stremail+=domain.emails+','
+            else:
+                for j in domain.emails:
+                    stremail+=j+','
+            if domain.phone: 
+                for j in domain.phone:
+                    strnumber+=j+','
+
+            my_set2 = set(my_liste)
+            email=list(my_set2)
+            my_set1 = set(my_listp)
+            phone_number=list(my_set1)
+            lennumber=len(phone_number)
+            lenemail=len(email)
+
+            if lenemail==0:
+                flag1=True
+            if lennumber==0:
+                flag2=True
+            if flag1 and flag2==True:
+                logging.debug(row['link'])
+                if 'facebook' in row['link']:
+                    print("Social media")
+                else:
+                    f = requests.get(row['link'])
+                    s = BeautifulSoup(f.content,'lxml')
+                                        
+                    logging.debug(row['link'])
+                    url2=row['link'].split('/')[2]
+                    # print(s.find_all('a', href=True, text=re.compile(r'(\w*)contact(\w*)', flags=re.IGNORECASE)))
+                    for lll in s.find_all('a', href=True, text=re.compile(r'(\w*)contact(\w*)', flags=re.IGNORECASE)):
+                        print lll['href']
+                        time.sleep(45)
+                        urll="http://"+url2+lll['href']
+                                    
+                        f = requests.get(urll)
+                        s=f.content    
+                        print("Both are empty fetching contact-Us page")
+                        print(re.findall(r"\+?\d{1,3}?[- .]?\(?(?:\d{2,3})\)?[- .]?\d\d\d[- .]?\d\d\d\d",s))   
+                  
+                        my_listp=findall(r"\+91[\s-]?\d*[-\s]?\d*[\s-]?\d{3}",s)
+                        my_liste=re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(?:com|in|co.in|org|edu|gov|uk|net|ca|mil)",s)
+                        kk=re.findall(r"\+?\d{1,3}?[- .]?\(?(?:\d{2,3})\)?[- .]?\d\d\d[- .]?\d\d\d\d",s)
+                        kk1 = set(kk)
+                        content=list(kk1)
+                        for k in range(1,8):
+                            content = [x for x in content if not x.startswith(str(k))]
+                        phone_number.extend(content)
+
+                        my_set2 = set(my_liste)
+                        email=list(my_set2)
+                        my_set1 = set(my_listp)
+                        phone_number=list(my_set1)
+
+                        for items in phone_number:
+                            strnumber+=items+','
+                            print strnumber
+                        for items in email:
+                            stremail+=items+',' 
+                            print stremail
+                        new=Organic(link=row['link'],title=row['title'],snippet=row['snippet'],domain=domn,Phone_no=strnumber,email_id=stremail)   
+                        db.session.add(new)
+                        db.session.commit()
+                                       
+            else:
+                for items in phone_number:
+                    strnumber+=items+','
+                    print strnumber
+                for items in email:
+                    stremail+=items+',' 
+                    print stremail
+                new=Organic(link=row['link'],title=row['title'],snippet=row['snippet'],domain=domn,Phone_no=strnumber,email_id=stremail)   
+                db.session.add(new)
+                db.session.commit()
+                              
+
+        except Exception as e:
+            print("-------------------failed --------")
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+            print(str(e))
+            db.session.rollback()
+            
+    # dmain=[]
+    # domn=''
+    # for index, row in df.iterrows():
+    #     dommm=row['link'].split('/')[2]
+                                            
+    #     if 'www' in dommm:
+    #         dmain.append(dommm.split('www.',1)[1])
+    #         domn=dommm.split('www.',1)[1]
+
+    #     else:
+    #         dmain.append(dommm)
+    #         domn=dommm
+        # fetch_data = db.session.query(Organic).all()
+        # if fetch_data==[]:
+        #     # imgkit.from_url(row['link'], row['title']+'.png')
+        #     #database dont have an entry
+        #     new=Organic(link=row['link'],title=row['title'],snippet=row['snippet'],domain=domn)
+        #     db.session.add(new)
+        #     db.session.commit()
+            
+   
+        # elif Organic.query.filter(Organic.link == row['link']).count()>=1:
+        #     # imgkit.from_url(row['link'], row['title']+'.png')
+        #     pass
+        #             #already present in database
+        # else:
+        #     # imgkit.from_url(row['link'], row['title']+'.png')
+        #     new=Organic(link=row['link'],title=row['title'],snippet=row['snippet'],domain=domn)
+        #     db.session.add(new)
+        #     db.session.commit()
+            # ALTER TABLE channelwala.organic MODIFY COLUMN snippet VARCHAR(555)     CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;
+
+        # logging.debug(row['link'])
+        # f = urllib.urlopen(row['link'])
+        # s = f.read()
+        # logging.debug(re.findall(r'\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4}',s))
+        # logging.debug(re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}",s))
+    
+    fetch_data = db.session.query(Organic).all()
+    data_list=[{'id':row.id,'title':row.title,'link':row.link,'snippet':row.snippet,'domain':row.domain} for row in fetch_data]
+    return render_template('googleorganic.html',data=data_list,path_s=path)  
+
+# @app.route('/save',methods=['GET','POST'])
+# def save():
+#     target=os.path.join(APP_ROOT,'static/')
+#     data= request.form['img_val']
+#     image_data = re.sub('^data:image/.+;base64,', '', data).decode('base64')
+#     image = Image.open(cStringIO.StringIO(image_data))
+#     # new_width  = 1500
+#     # new_height = 1500
+#     # image = image   .resize((new_width, new_height), Image.ANTIALIAS)
+#     dest="/".join([target,'screen1.png'])
+#     image.save(dest)
+#     return"SUCCESS" 
+
+    # return script_response
+# schedule.every(2).minutes.do(job)
+if __name__ == '__main__':
+    app.run(host='localhost')
+    
+
+
+    # webbrowser.open_new_tab('http://127.0.0.1:5000/')
+
+# while True:
+#     schedule.run_pending()
+#     time.sleep(1)

@@ -1,0 +1,87 @@
+import mechanize
+import requests
+from bs4 import BeautifulSoup
+import re
+import  pdb
+br = mechanize.Browser()
+print br
+br.set_handle_robots(False)   # ignore robots
+lin=['https://www.99acres.com/prestige-misty-waters-hebbal-bangalore-north-npxid-r5488',
+'http://harshasagar.com/contact-us/',
+'https://www.commonfloor.com/prestige-misty-waters-bangalore/povp-ocfych',
+'https://prestigemistywaters.contact-us-now.com/',
+'https://www.nestoria.in/prestige-misty-waters/flat/sale/bhk-3',
+'https://www.nestoria.in/prestige-misty-waters/flat/sale/bhk-2',
+'http://harshasagar.com/2012/09/09/prestige-misty-waters-location-price-review-public-opinion-more/',
+'http://www.prestige-misty-waters.propladder.com/',
+'http://www.propreview.in/bangalore/prestige-misty-waters/',
+'http://www.prestigemistywatershebbal.in/',
+'http://www.3bindia.com/p-prestige-misty-waters-phase-2-bangalore']
+for i in range(11):
+    try:
+        data=br.open(lin[i])
+        print data
+            # url = 'https://www.magicbricks.com/prestige-misty-waters-hebbal-bangalore-pdpid-4d4235303037353834  '
+            # page = requests.get(url).text
+        lis=[]
+        for form in br.forms():
+            print("Welcome to form")
+            br.select_form(form.name)
+     
+            for control in br.form.controls:
+                print control.name
+                lis.append(control.name)
+            print(len(br.form.controls))
+            
+            for i in range(len(br.form.controls)):
+                if 'name' in  lis[i]:
+                    name= lis[i]
+                if 'mobileno' in lis[i]:
+                    print(lis[i])
+                    number=lis[i]
+                if 'email' in lis[i]:
+                    email=lis[i]
+            controlname = br.form.find_control(name)
+            if controlname:
+                print("true")
+                if controlname.type == "select":  # means it's class ClientForm.SelectControl
+                    for item in controlname.items:
+                    	print " name=%s values=%s" % (item.name, str([label.text  for label in item.get_labels()]))
+                print('***********************************************************')
+                print controlname.name
+                print controlname  # selected value is starred
+                controlname.value = "xyz"
+              
+            controlcontact = br.form.find_control(number)
+            if controlcontact:
+                if controlcontact.type == "select":  # means it's class ClientForm.SelectControl
+                    for item in controlcontact.items:
+                    	print " name=%s values=%s" % (item.name, str([label.text  for label in item.get_labels()]))
+                print('***********************************************************')
+                print controlcontact  # selected value is starred
+                controlcontact.value = "9999999999"
+                print controlcontact
+               
+
+
+            controlemail = br.form.find_control(email)
+            if controlemail:
+                if controlemail.type == "select":  # means it's class ClientForm.SelectControl
+                    for item in controlemail.items:
+                    	print " name=%s values=%s" % (item.name, str([label.text  for label in item.get_labels()]))
+                print('***********************************************************')
+                print controlemail  # selected value is starred
+                controlemail.value = "xyz@gmail.com"
+                print controlemail
+            
+
+       
+
+            for control in br.form.controls:
+               if control.type == "submit":
+                   control.disabled = True
+            response = br.submit()
+            print response
+    except Exception as e:
+        print(str(e))
+        print("failed"+lin[i])
